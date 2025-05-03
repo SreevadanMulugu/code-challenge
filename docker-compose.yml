@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  # ---------- LLM runner ----------
+  ollama:
+    image: ollama/ollama:latest     # official image   [oai_citation:0‡Docker Hub](https://hub.docker.com/r/ollama/ollama?utm_source=chatgpt.com)
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    # Pull the model the first time the container starts
+    command: >
+      bash -c "
+        ollama pull llama3:8b-instruct-q4 &&
+        ollama serve
+      "
+
+  # ---------- Dev workspace ----------
+  app:
+    build: .
+    container_name: rag-resume-app
+    volumes:
+      - .:/app
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      # optional cloud keys – uncomment if the candidate prefers OpenAI/Anthropic
+      # - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    depends_on:
+      - ollama
+    command: bash        # drop into shell; candidate runs python, jupyter, etc.
+
+volumes:
+  ollama_models:
